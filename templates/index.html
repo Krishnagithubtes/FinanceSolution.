@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Finance Toolkit</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22d3ee; }
+    body { margin:0; font-family: system-ui, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    h1 { font-size: 28px; margin: 4px 0 16px; }
+    h2 { font-size: 20px; margin: 0; cursor:pointer; padding:12px; background:#1e293b; border-radius:12px; }
+    .section { display:none; margin-top:12px; padding:16px; background: var(--card); border-radius:12px; }
+    .row { display:flex; gap:8px; align-items:center; margin:8px 0; }
+    label { width: 50%; color: var(--muted); font-size: 14px; }
+    input, select { flex:1; background:#0b1220; color:var(--text); border:1px solid #223049; border-radius:10px; padding:10px; outline:none; }
+    button { padding:10px 14px; border-radius:12px; border:1px solid #223049; background:#0b1220; color:var(--text); cursor:pointer; }
+    button.primary { background:linear-gradient(135deg,#22d3ee,#60a5fa); color:#0b1220; font-weight:700; }
+    .result { background:#0b1220; border:1px dashed #223049; padding:10px; border-radius:12px; font-family: ui-monospace, monospace; white-space:pre-line; }
+    small.hint { color: var(--muted); display:block; margin-top:6px; }
+    .footer { margin: 24px 0 40px; color: var(--muted); font-size: 12px; text-align:center; }
+    #map { height: 300px; border-radius: 12px; margin-top:10px; }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>💼 Finance Toolkit</h1>
+  <p class="muted">Click an option below to open its calculator/tool.</p>
+
+  <!-- MENU -->
+  <h2 onclick="toggle('emi')">📊 EMI Calculator</h2>
+  <div id="emi" class="section">
+    <div class="row"><label>Principal (₹)</label><input id="emi_p" type="number" value="100000" /></div>
+    <div class="row"><label>Rate (% p.a.)</label><input id="emi_r" type="number" value="10" step="0.01" /></div>
+    <div class="row"><label>Tenure (months)</label><input id="emi_m" type="number" value="36" /></div>
+    <div class="row"><button class="primary" onclick="calcEMI()">Calculate</button></div>
+    <div id="emi_out" class="result"></div>
+  </div>
+
+  <h2 onclick="toggle('loan')">🏦 Loan Comparison</h2>
+  <div id="loan" class="section">
+    <div class="row"><label>Loan A Principal</label><input id="lc_p1" type="number" value="800000" /></div>
+    <div class="row"><label>Loan A Rate %</label><input id="lc_r1" type="number" value="9.2" /></div>
+    <div class="row"><label>Loan A Months</label><input id="lc_m1" type="number" value="120" /></div>
+    <div class="row"><label>Loan B Principal</label><input id="lc_p2" type="number" value="800000" /></div>
+    <div class="row"><label>Loan B Rate %</label><input id="lc_r2" type="number" value="8.9" /></div>
+    <div class="row"><label>Loan B Months</label><input id="lc_m2" type="number" value="120" /></div>
+    <div class="row"><button class="primary" onclick="loanCompare()">Compare</button></div>
+    <div id="lc_out" class="result"></div>
+  </div>
+
+  <h2 onclick="toggle('gst')">💰 GST Calculator</h2>
+  <div id="gst" class="section">
+    <div class="row"><label>Amount</label><input id="gst_amount" value="1000" /></div>
+    <div class="row"><label>GST %</label><input id="gst_rate" value="18" /></div>
+    <div class="row"><label>Mode</label>
+      <select id="gst_mode"><option value="add">Add GST</option><option value="remove">Remove GST</option></select>
+    </div>
+    <div class="row"><button class="primary" onclick="calcGST()">Calculate</button></div>
+    <div id="gst_out" class="result"></div>
+  </div>
+
+  <h2 onclick="toggle('fd')">📈 FD Calculator</h2>
+  <div id="fd" class="section">
+    <div class="row"><label>Principal (₹)</label><input id="fd_p" value="100000" /></div>
+    <div class="row"><label>Rate (%)</label><input id="fd_r" value="7" /></div>
+    <div class="row"><label>Years</label><input id="fd_t" value="3" /></div>
+    <div class="row"><button class="primary" onclick="calcFD()">Calculate</button></div>
+    <div id="fd_out" class="result"></div>
+  </div>
+
+  <h2 onclick="toggle('rd')">💵 RD Calculator</h2>
+  <div id="rd" class="section">
+    <div class="row"><label>Monthly (₹)</label><input id="rd_r" value="5000" /></div>
+    <div class="row"><label>Rate (%)</label><input id="rd_rate" value="7.2" /></div>
+    <div class="row"><label>Months</label><input id="rd_months" value="24" /></div>
+    <div class="row"><button class="primary" onclick="calcRD()">Calculate</button></div>
+    <div id="rd_out" class="result"></div>
+  </div>
+
+  <h2 onclick="toggle('currency')">💱 Currency Converter</h2>
+  <div id="currency" class="section">
+    <div class="row"><label>Amount</label><input id="cc_amt" value="100" /></div>
+    <div class="row"><label>From</label><input id="cc_from" value="USD" /></div>
+    <div class="row"><label>To</label><input id="cc_to" value="INR" /></div>
+    <div class="row"><button class="primary" onclick="convertCurrency()">Convert</button></div>
+    <div id="cc_out" class="result"></div>
+  </div>
+
+  <h2 onclick="toggle('atm')">🏧 ATM Finder</h2>
+  <div id="atm" class="section">
+    <div class="row"><label>Place</label><input id="atm_place" placeholder="Connaught Place, Delhi" /></div>
+    <div class="row"><label>Radius</label><input id="atm_radius" value="1000" /></div>
+    <div class="row"><button class="primary" onclick="findATMs()">Find ATMs</button></div>
+    <div id="map"></div>
+  </div>
+
+  <h2 onclick="toggle('holiday')">📅 Bank Holidays</h2>
+  <div id="holiday" class="section">
+    <div class="row"><button class="primary" onclick="loadHolidays()">Show Holidays</button></div>
+    <div id="hol_out" class="result"></div>
+  </div>
+
+  <h2 onclick="toggle('credit')">⭐ Credit Score Checker</h2>
+  <div id="credit" class="section">
+    <div class="row"><label>Payment History %</label><input id="cs_ph" value="95" /></div>
+    <div class="row"><label>Utilization %</label><input id="cs_util" value="20" /></div>
+    <div class="row"><label>Credit Age (yrs)</label><input id="cs_age" value="3" /></div>
+    <div class="row"><label>Inquiries</label><input id="cs_inq" value="1" /></div>
+    <div class="row"><label>DTI %</label><input id="cs_dti" value="30" /></div>
+    <div class="row"><button class="primary" onclick="checkScore()">Check</button></div>
+    <div id="cs_out" class="result"></div>
+  </div>
+
+  <div class="footer">Made for learning • All tools offline except ATM Finder (uses OSM)</div>
+</div>
+
+<script>
+function toggle(id){
+  document.querySelectorAll('.section').forEach(sec=>sec.style.display='none');
+  document.getElementById(id).style.display='block';
+}
+</script>
+<script>
+  async function postJSON(url, payload){
+    const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    if(!r.ok){ const t = await r.text(); throw new Error(t || ('HTTP '+r.status)); }
+    return r.json();
+  }
+
+  // EMI
+  async function calcEMI(){
+    try{
+      const res = await postJSON('/api/emi', {
+        principal: +document.getElementById('emi_p').value,
+        annual_rate_percent: +document.getElementById('emi_r').value,
+        months: +document.getElementById('emi_m').value
+      });
+      document.getElementById('emi_out').innerText =
+        `EMI: ₹${res.emi.toLocaleString()} | Total Interest: ₹${res.total_interest.toLocaleString()} | Total Payment: ₹${res.total_payment.toLocaleString()}`;
+    }catch(e){ document.getElementById('emi_out').innerText = e.message; }
+  }
+
+  // Loan comparison
+  async function loanCompare(){
+    const payload = {
+      p1:+lc_p1.value, r1:+lc_r1.value, m1:+lc_m1.value,
+      p2:+lc_p2.value, r2:+lc_r2.value, m2:+lc_m2.value
+    };
+    try{
+      const res = await postJSON('/api/loan-compare', payload);
+      const a = res.loanA, b = res.loanB;
+      const better = (a.total_payment < b.total_payment) ? 'Loan A' :
+                     (a.total_payment > b.total_payment) ? 'Loan B' : 'Tie';
+      lc_out.innerText =
+        `Loan A → EMI ₹${a.emi.toLocaleString()}, Interest ₹${a.total_interest.toLocaleString()}, Total ₹${a.total_payment.toLocaleString()}
+Loan B → EMI ₹${b.emi.toLocaleString()}, Interest ₹${b.total_interest.toLocaleString()}, Total ₹${b.total_payment.toLocaleString()}
+Winner (lower total): ${better}`;
+    }catch(e){ lc_out.innerText = e.message; }
+  }
+
+  // Currency
+  async function convertCurrency(){
+    try{
+      const payload = {
+        amount:+cc_amt.value,
+        from_code: cc_from.value,
+        to_code: cc_to.value
+      };
+      const cr = cc_rate.value;
+      if(cr) payload.custom_rate = +cr;
+      const res = await postJSON('/api/currency', payload);
+      cc_out.innerText = `Converted: ${res.converted} ${cc_to.value} (rate used: ${(+res.rate_used).toFixed(6)}; ${res.note})`;
+    }catch(e){ cc_out.innerText = e.message; }
+  }
+
+  // GST
+  async function calcGST(){
+    try{
+      const res = await postJSON('/api/gst', {
+        amount:+gst_amount.value,
+        gst_rate:+gst_rate.value,
+        mode: gst_mode.value
+      });
+      gst_out.innerText = `Base: ₹${res.base.toLocaleString()} | GST: ₹${res.gst.toLocaleString()} | Gross: ₹${res.gross.toLocaleString()}`;
+    }catch(e){ gst_out.innerText = e.message; }
+  }
+
+  // FD
+  async function calcFD(){
+    try{
+      const res = await postJSON('/api/fd', {
+        principal:+fd_p.value,
+        annual_rate:+fd_r.value,
+        years:+fd_t.value,
+        comp_per_year:+fd_n.value
+      });
+      fd_out.innerText = `Maturity: ₹${res.maturity.toLocaleString()} | Interest Earned: ₹${res.interest.toLocaleString()}`;
+    }catch(e){ fd_out.innerText = e.message; }
+  }
+
+  // RD
+  async function calcRD(){
+    try{
+      const res = await postJSON('/api/rd', {
+        monthly_installment:+rd_r.value,
+        annual_rate:+rd_rate.value,
+        months:+rd_months.value
+      });
+      rd_out.innerText = `Maturity: ₹${res.maturity.toLocaleString()} | Interest Earned: ₹${res.interest.toLocaleString()}`;
+    }catch(e){ rd_out.innerText = e.message; }
+  }
+
+  // Holidays
+  async function loadHolidays(){
+    hol_out.innerText = 'Loading...';
+    try{
+      const res = await fetch('/api/bank-holidays').then(r=>r.json());
+      const rows = res.holidays.map(h => `${h.date} — ${h.name}`).join('\n');
+      hol_out.innerText = rows || 'No data';
+    }catch(e){ hol_out.innerText = e.message; }
+  }
+
+  // Credit Score
+  async function checkScore(){
+    try{
+      const res = await postJSON('/api/credit-score', {
+        payment_history_pct:+cs_ph.value,
+        utilization_pct:+cs_util.value,
+        credit_age_years:+cs_age.value,
+        inquiries:+cs_inq.value,
+        dti_pct:+cs_dti.value
+      });
+      cs_out.innerText = `Estimated Score: ${res.score} (${res.band})`;
+    }catch(e){ cs_out.innerText = e.message; }
+  }
+
+  // ATM Finder — OSM Overpass + Leaflet
+  let map, markersLayer;
+  function initMap(){
+    if(map) return;
+    map = L.map('map').setView([28.6139, 77.2090], 13); // Delhi default
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+  }
+  async function geocode(place){
+    // Nominatim geocoding (public demo endpoint, be gentle)
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}`;
+    const r = await fetch(url, {headers:{'Accept-Language':'en'}});
+    const j = await r.json();
+    if(!j.length) throw new Error('Place not found');
+    const {lat, lon} = j[0];
+    return [parseFloat(lat), parseFloat(lon)];
+  }
+  async function overpassATMs(lat, lon, radius){
+    // Find nodes tagged amenity=atm within radius
+    const query = `
+      [out:json];
+      (
+        node["amenity"="atm"](around:${radius},${lat},${lon});
+      );
+      out center;`;
+    const r = await fetch('https://overpass-api.de/api/interpreter', {
+      method:'POST',
+      body: query,
+      headers: {'Content-Type':'text/plain'}
+    });
+    const j = await r.json();
+    return (j.elements || []).map(e => ({
+      id: e.id,
+      lat: e.lat || (e.center && e.center.lat),
+      lon: e.lon || (e.center && e.center.lon),
+      name: (e.tags && (e.tags.name || e.tags.operator)) || 'ATM'
+    })).filter(x => x.lat && x.lon);
+  }
+  async function findATMs(){
+    initMap();
+    markersLayer.clearLayers();
+    const place = document.getElementById('atm_place').value || 'Connaught Place, Delhi';
+    const radius = +document.getElementById('atm_radius').value || 1200;
+    try{
+      const [lat, lon] = await geocode(place);
+      map.setView([lat, lon], 15);
+      const atms = await overpassATMs(lat, lon, radius);
+      if(!atms.length){
+        L.marker([lat, lon]).addTo(markersLayer).bindPopup('No ATMs found nearby (try larger radius).');
+        return;
+      }
+      atms.forEach(a => {
+        L.marker([a.lat, a.lon]).addTo(markersLayer).bindPopup(a.name);
+      });
+    }catch(e){
+      alert(e.message);
+    }
+  }
+
+  // init map container after DOM load (to get proper size)
+  window.addEventListener('load', initMap);
+</script>
+<!-- Keep the same JS functions from earlier (calcEMI, loanCompare, calcGST, etc.) -->
+<script src="/static/scripts.js"></script>
+
+</body>
+</html>
